@@ -1,14 +1,14 @@
 import streamlit as st
 import pickle
 import numpy as np
+import joblib
 
-# =========================
-# LOAD MODEL DAN SCALER
-# =========================
-model_svm = pickle.load(open("model_svm.pkl", "rb"))
-model_rf = pickle.load(open("model_random_forest.pkl", "rb"))
-model_vote = pickle.load(open("model_voting.pkl", "rb"))
-scaler = pickle.load(open("scaler.pkl", "rb"))
+# Jika file ada di folder sama dengan app.py
+model_svm = joblib.load("model_svm.pkl")
+model_rf = joblib.load("model_random_forest.pkl")
+model_vote = joblib.load("model_voting.pkl")
+scaler = joblib.load("scaler.pkl")
+
 
 # =========================
 # JUDUL
