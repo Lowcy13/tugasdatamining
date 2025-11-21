@@ -22,20 +22,19 @@ voting_model = joblib.load("model_voting.pkl")
 scaler = joblib.load("scaler.pkl")
 
 # ======================================================
-# Sidebar - Pilihan Model
+# Pilihan Model - Berada di Tengah Layar
 # ======================================================
 
-st.sidebar.header("Pilih Model yang Akan Digunakan")
-model_choice = st.sidebar.selectbox(
-    "Model Prediksi:",
-    ("SVM", "Random Forest", "Voting Classifier")
-)
+st.header("Pilih Model Prediksi")
 
-# Opsional: tampilkan akurasi
-st.sidebar.subheader("Akurasi Model (Contoh)")
-st.sidebar.write("🔹 SVM: 91%")
-st.sidebar.write("🔹 Random Forest: 94%")
-st.sidebar.write("🔹 Voting Classifier: 96%")
+# Membuat kolom agar selectbox berada di tengah
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col2:
+    model_choice = st.selectbox(
+        "Pilih Model yang Akan Digunakan:",
+        ("SVM", "Random Forest", "Voting Classifier")
+    )
 
 # ======================================================
 # Input Form
