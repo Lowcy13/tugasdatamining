@@ -1,85 +1,108 @@
 import streamlit as st
+import pickle
 import numpy as np
-import joblib
-import os
 
-# ======================================================
-# Load Models
-# ======================================================
+# =========================
+# LOAD MODEL DAN SCALER
+# =========================
+model_svm = pickle.load(open("model_svm.pkl", "rb"))
+model_rf = pickle.load(open("model_random_forest.pkl", "rb"))
+model_vote = pickle.load(open("model_voting.pkl", "rb"))
+scaler = pickle.load(open("scaler.pkl", "rb"))
 
-st.title("Heart Disease Prediction App")
-st.write("Aplikasi ini menggunakan SVM, Random Forest, dan Voting Classifier")
+# =========================
+# JUDUL
+# =========================
+st.title("❤️ Heart Disease Prediction App")
+st.write("Menggunakan SVM, Random Forest, dan Voting Classifier")
 
-# Cek file tersedia
-files = os.listdir(".")
-st.write("📁 Files in directory:")
-st.write(files)
+# =========================
+# PILIH MODEL (DITENGAH)
+# =========================
+st.subheader("Pilih Model Prediksi")
 
-# Load models
-svm_model = joblib.load("model_svm.pkl")
-rf_model = joblib.load("model_random_forest.pkl")
-voting_model = joblib.load("model_voting.pkl")
-scaler = joblib.load("scaler.pkl")
-
-# ======================================================
-# Pilihan Model - Berada di Tengah Layar
-# ======================================================
-
-st.header("Pilih Model Prediksi")
-
-# Membuat kolom agar selectbox berada di tengah
 col1, col2, col3 = st.columns([1, 2, 1])
-
 with col2:
-    model_choice = st.selectbox(
-        "Pilih Model yang Akan Digunakan:",
-        ("SVM", "Random Forest", "Voting Classifier")
+    model_name = st.selectbox(
+        "Pilih Model",
+        ["SVM", "Random Forest", "Voting Classifier"]
     )
 
-# ======================================================
-# Input Form
-# ======================================================
+# =========================
+# INPUT DATA
+# =========================
+st.subheader("Masukkan Data Pasien")
 
-st.header("Masukkan Data Pasien")
-
-age = st.number_input("Age", 1, 120, 52)
-sex = st.selectbox("Sex (0 = Female, 1 = Male)", [0, 1])
+age = st.number_input("Age", 20, 100, 52)
+sex = st.selectbox("Sex (0=Female, 1=Male)", [0, 1])
 cp = st.selectbox("Chest Pain Type (0–3)", [0, 1, 2, 3])
-trestbps = st.number_input("Resting BP", 50, 200, 130)
-chol = st.number_input("Cholesterol", 50, 600, 220)
+trestbps = st.number_input("Resting BP", 80, 200, 130)
+chol = st.number_input("Cholesterol", 100, 400, 220)
 fbs = st.selectbox("Fasting Blood Sugar (1=Yes,0=No)", [0, 1])
 restecg = st.selectbox("Resting ECG (0–2)", [0, 1, 2])
-thalach = st.number_input("Max HR", 50, 250, 165)
+thalach = st.number_input("Max HR", 60, 220, 165)
 exang = st.selectbox("Exercise Angina (1=Yes,0=No)", [0, 1])
 oldpeak = st.number_input("Oldpeak", 0.0, 10.0, 0.8)
 slope = st.selectbox("ST Slope (0–2)", [0, 1, 2])
 
-# Convert ke array
-input_data = np.array([[age, sex, cp, trestbps, chol, fbs,
-                        restecg, thalach, exang, oldpeak, slope]])
-
-# Scaling
-scaled_data = scaler.transform(input_data)
-
-# ======================================================
-# Prediksi
-# ======================================================
-
+# =========================
+# PREDIKSI
+# =========================
 if st.button("Prediksi"):
+    # Susun input
+    input_data = np.array([[age, sex, cp, trestbps, chol, fbs,
+                            restecg, thalach, exang, oldpeak, slope]])
 
-    # Pilihan model
-    if model_choice == "SVM":
-        probability = svm_model.predict_proba(scaled_data)[0][1]
-    elif model_choice == "Random Forest":
-        probability = rf_model.predict_proba(scaled_data)[0][1]
+    # Scale data
+    input_scaled = scaler.transform(input_data)
+
+    # Pilih model
+    if model_name == "SVM":
+        prob = model_svm.predict_proba(input_scaled)[0][1]
+    elif model_name == "Random Forest":
+        prob = model_rf.predict_proba(input_scaled)[0][1]
     else:
-        probability = voting_model.predict_proba(scaled_data)[0][1]
+        prob = model_vote.predict_proba(input_scaled)[0][1]
 
-    st.subheader("Hasil Prediksi")
-    st.write(f"🔎 Probabilitas Penyakit Jantung: **{probability:.2f}**")
-
-    # Threshold 0.5
-    if probability >= 0.5:
-        st.error("⚠ Risiko Tinggi Penyakit Jantung")
+    # =========================
+    # KATEGORI RISIKO
+    # =========================
+    if prob <= 0.35:
+        kategori = "Rendah"
+        warna = "green"
+    elif prob <= 0.65:
+        kategori = "Sedang"
+        warna = "orange"
     else:
-        st.success("✔ Risiko Rendah Penyakit Jantung")
+        kategori = "Tinggi"
+        warna = "red"
+
+    # =========================
+    # TAMPILKAN HASIL
+    # =========================
+    st.subheader("🔎 Hasil Prediksi")
+
+    st.write(f"**Probabilitas Penyakit Jantung: {prob:.2f}**")
+
+    st.markdown(
+        f"""
+        <div style="padding:15px; border-radius:10px; background-color:{warna}; color:white;">
+            <h3 style="margin:0;">Level Risiko: {kategori}</h3>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Penjelasan level risiko
+    st.write("### ℹ Informasi Level Risiko")
+    st.info("""
+**Rendah (0.00 – 0.35)**  
+Pasien cenderung tidak memiliki penyakit jantung. Tetap jaga pola hidup sehat.
+
+**Sedang (0.35 – 0.65)**  
+Ada indikasi awal penyakit jantung. Disarankan pemeriksaan lanjutan.
+
+**Tinggi (0.65 – 1.00)**  
+Pasien sangat berisiko terkena penyakit jantung. Perlu pemeriksaan medis segera.
+""")
+
