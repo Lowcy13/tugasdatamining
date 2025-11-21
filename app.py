@@ -3,59 +3,50 @@ import numpy as np
 import joblib
 import os
 
+# ===============================
+# LOAD MODEL & SCALER
+# ===============================
+scaler = joblib.load("scaler.pkl")
+model_voting = joblib.load("model_voting.pkl")
+
 st.title("Heart Disease Prediction App")
 st.write("Aplikasi ini menggunakan Voting Classifier (Random Forest + SVM)")
 
-# Debug – tampilkan file di folder Streamlit
-st.write("📁 Files in directory:", os.listdir("."))
+# Debug: list files
+st.write("📁 Files in directory:")
+st.write(os.listdir("."))
 
-# Load model & scaler dengan error handling
-try:
-    model = joblib.load("model.pkl")
-except:
-    st.error("❌ model.pkl tidak ditemukan di repo! Upload file tersebut ke GitHub.")
-    st.stop()
-
-try:
-    scaler = joblib.load("scaler.pkl")
-except:
-    st.error("❌ scaler.pkl tidak ditemukan di repo! Upload file tersebut ke GitHub.")
-    st.stop()
-
-st.subheader("Masukkan Data Pasien")
-
-# Input form
-age = st.number_input("Age", 1, 120)
+# ===============================
+# INPUT FORM
+# ===============================
+age = st.number_input("Age", min_value=1, max_value=120, value=40)
 sex = st.selectbox("Sex (0 = Female, 1 = Male)", [0, 1])
-chestpain = st.selectbox("Chest Pain Type (0–3)", [0, 1, 2, 3])
-bp = st.number_input("Resting BP", 50, 200)
-cholesterol = st.number_input("Cholesterol", 50, 500)
-fasting_bs = st.selectbox("Fasting Blood Sugar (1=Yes,0=No)", [0, 1])
+cp = st.selectbox("Chest Pain Type (0–3)", [0, 1, 2, 3])
+trestbps = st.number_input("Resting BP", min_value=50, max_value=200, value=120)
+chol = st.number_input("Cholesterol", min_value=50, max_value=600, value=200)
+fbs = st.selectbox("Fasting Blood Sugar (1=Yes,0=No)", [0, 1])
 restecg = st.selectbox("Resting ECG (0–2)", [0, 1, 2])
-max_hr = st.number_input("Max HR", 50, 220)
-exercise_angina = st.selectbox("Exercise Angina (1=Yes,0=No)", [0, 1])
-oldpeak = st.number_input("Oldpeak", 0.0, 10.0)
-st_slope = st.selectbox("ST Slope (0–2)", [0, 1, 2])
+thalach = st.number_input("Max HR", min_value=60, max_value=250, value=150)
+exang = st.selectbox("Exercise Angina (1=Yes,0=No)", [0, 1])
+oldpeak = st.number_input("Oldpeak", min_value=0.0, max_value=10.0, value=1.0)
+slope = st.selectbox("ST Slope (0–2)", [0, 1, 2])
 
-# Gabungkan input
-input_data = np.array([
-    age, sex, chestpain, bp, cholesterol,
-    fasting_bs, restecg, max_hr, exercise_angina,
-    oldpeak, st_slope
-]).reshape(1, -1)
-
-# Prediksi
+# ===============================
+# PREDICT
+# ===============================
 if st.button("Prediksi"):
-    # scaling
-    try:
-        input_scaled = scaler.transform(input_data)
-    except:
-        st.error("❌ Terjadi error saat scaling. Pastikan scaler.pkl sesuai model.")
-        st.stop()
+    input_data = np.array([[age, sex, cp, trestbps, chol, fbs,
+                            restecg, thalach, exang, oldpeak, slope]])
 
-    pred = model.predict(input_scaled)
+    scaled = scaler.transform(input_data)
 
-    if pred == 1:
+    proba = model_voting.predict_proba(scaled)[0][1]
+
+    prediction = 1 if proba >= 0.55 else 0
+
+    st.write(f"🔎 Probabilitas Penyakit Jantung: **{proba:.2f}**")
+
+    if prediction == 1:
         st.error("⚠ Risiko Tinggi Penyakit Jantung")
     else:
-        st.success("✔ Tidak Berisiko Penyakit Jantung")
+        st.success("✅ Risiko Rendah Penyakit Jantung")
